@@ -46,3 +46,49 @@ export const adicionarLivro = async (req, res) => {
         res.status(400).json({ mensagem: "Erro ao salvar o livro", erro: error.message });
     }
 };
+
+export const listarLivros = async (req, res) => {
+    try {
+        const livros = await Livro.find();
+        res.status(200).json(livros);
+    } catch (error) {
+        res.status(500).json({ mensagem: "Erro ao buscar livros no banco", erro: error.message });
+    }
+};
+
+export const atualizarLivro = async (req, res) => {
+    const { id } = req.params; 
+    
+    try {
+        const livroAtualizado = await Livro.findByIdAndUpdate(id, req.body, { new: true });
+        
+        if (!livroAtualizado) {
+            return res.status(404).json({ mensagem: "Livro não encontrado." });
+        }
+
+        res.status(200).json({
+            mensagem: "Livro atualizado com sucesso!",
+            livro: livroAtualizado
+        });
+    } catch (error) {
+        res.status(400).json({ mensagem: "Erro ao atualizar livro", erro: error.message });
+    }
+};
+
+export const removerLivro = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const livroRemovido = await Livro.findByIdAndDelete(id);
+
+        if (!livroRemovido) {
+            return res.status(404).json({ mensagem: "Livro não encontrado para remoção." });
+        }
+
+        res.status(200).json({
+            mensagem: `O livro "${livroRemovido.titulo}" foi removido com sucesso!`
+        });
+    } catch (error) {
+        res.status(500).json({ mensagem: "Erro ao remover o livro", erro: error.message });
+    }
+};
