@@ -1,5 +1,5 @@
 import express from 'express';
-import { buscarLivroExterno } from '../controllers/livroController.js';
+import { buscarLivroExterno, adicionarLivro } from '../controllers/livroController.js';
 
 const routes = express.Router();
 
@@ -7,3 +7,5 @@ const routes = express.Router();
 routes.get('/buscar', buscarLivroExterno);
 
 export default routes;
+
+routes.post('/livros', adicionarLivro);
