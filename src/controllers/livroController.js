@@ -49,10 +49,22 @@ export const adicionarLivro = async (req, res) => {
 
 export const listarLivros = async (req, res) => {
     try {
-        const livros = await Livro.find();
+        const { titulo, lido } = req.query;
+        const filtro = {};
+
+        if (titulo) {
+            filtro.titulo = { $regex: titulo, $options: 'i' };
+        }
+
+        if (lido !== undefined) {
+            filtro.lido = lido === 'true';
+        }
+
+        const livros = await Livro.find(filtro);
+
         res.status(200).json(livros);
     } catch (error) {
-        res.status(500).json({ mensagem: "Erro ao buscar livros no banco", erro: error.message });
+        res.status(500).json({ mensagem: "Erro ao buscar livros", erro: error.message });
     }
 };
 
@@ -90,5 +102,25 @@ export const removerLivro = async (req, res) => {
         });
     } catch (error) {
         res.status(500).json({ mensagem: "Erro ao remover o livro", erro: error.message });
+    }
+};
+
+export const listarPorCategoria = async (req, res) => {
+    try {
+        const { codigo } = req.params;
+
+        const livros = await Livro.find({
+            cdd: { $regex: `^${codigo}`, $options: 'i' }
+        });
+
+        if (livros.length === 0) {
+            return res.status(404).json({ 
+                mensagem: `Nenhum livro encontrado na categoria ${codigo}.` 
+            });
+        }
+
+        res.status(200).json(livros);
+    } catch (error) {
+        res.status(500).json({ mensagem: "Erro ao filtrar por categoria", erro: error.message });
     }
 };

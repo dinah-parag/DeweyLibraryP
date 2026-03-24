@@ -1,10 +1,16 @@
 import express from 'express';
-import { buscarLivroExterno, adicionarLivro, listarLivros, atualizarLivro,  removerLivro} from '../controllers/livroController.js';
+import { 
+    buscarLivroExterno, 
+    adicionarLivro, 
+    listarLivros,
+    listarPorCategoria, // <- adicionar aqui
+    atualizarLivro, 
+    removerLivro 
+} from '../controllers/livroController.js';
 
 
 const routes = express.Router();
 
-// Pega pedidos do tipo GET no endereço /buscar
 routes.get('/buscar', buscarLivroExterno);
 
 export default routes;
