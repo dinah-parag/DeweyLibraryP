@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Biblioteca Dewey</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ardosia: #708090;
+      --salvia: #B2AC88;
+      --areia: #C2B280;
+      --bg: #f5f3ef;
+      --superficie: #ffffff;
+      --texto: #2c2c2a;
+      --texto-suave: #6b6b67;
+      --borda: #e0ddd6;
+      --radius: 10px;
+    }
+
+    body {
+      font-family: system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--texto);
+      min-height: 100vh;
+    }
+
+    header {
+      background: var(--ardosia);
+      color: #fff;
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    header h1 { font-size: 1.2rem; font-weight: 500; letter-spacing: 0.03em; }
+    header p  { font-size: 0.8rem; opacity: 0.75; margin-top: 2px; }
+
+    #btn-cadeado {
+      background: none;
+      border: 1.5px solid rgba(255,255,255,0.4);
+      border-radius: 8px;
+      color: #fff;
+      cursor: pointer;
+      padding: 6px 10px;
+      font-size: 1rem;
+      transition: background 0.2s;
+    }
+    #btn-cadeado:hover { background: rgba(255,255,255,0.15); }
+
+    main { max-width: 760px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+    /* --- Painel admin --- */
+    #painel-admin {
+      display: none;
+      background: var(--superficie);
+      border: 1px solid var(--borda);
+      border-radius: var(--radius);
+      padding: 1.2rem;
+      margin-bottom: 1.5rem;
+    }
+    #painel-admin.visivel { display: block; }
+    #painel-admin h2 { font-size: 0.95rem; font-weight: 500; margin-bottom: 1rem; color: var(--texto-suave); }
+
+    .busca-row { display: flex; gap: 8px; }
+    .busca-row input {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1px solid var(--borda);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      background: var(--bg);
+      color: var(--texto);
+    }
+    .busca-row input:focus { outline: 2px solid var(--ardosia); }
+
+    button.primario {
+      background: var(--ardosia);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    button.primario:hover { opacity: 0.85; }
+
+    #resultado-busca {
+      margin-top: 1rem;
+      display: none;
+      background: var(--bg);
+      border: 1px solid var(--borda);
+      border-radius: var(--radius);
+      padding: 1rem;
+    }
+    #resultado-busca.visivel { display: block; }
+    #resultado-busca h3 { font-size: 0.95rem; font-weight: 500; }
+    #resultado-busca p  { font-size: 0.82rem; color: var(--texto-suave); margin-top: 4px; }
+    #resultado-busca .salvar-row { margin-top: 10px; display: flex; justify-content: flex-end; }
+
+    /* --- Filtros --- */
+    .filtros {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 1.2rem;
+    }
+    .filtros input, .filtros select {
+      padding: 7px 12px;
+      border: 1px solid var(--borda);
+      border-radius: 8px;
+      font-size: 0.85rem;
+      background: var(--superficie);
+      color: var(--texto);
+      flex: 1;
+      min-width: 140px;
+    }
+    .filtros input:focus, .filtros select:focus { outline: 2px solid var(--ardosia); }
+
+    /* --- Lista de livros --- */
+    #lista-livros { display: flex; flex-direction: column; gap: 10px; }
+
+    .livro-item {
+      background: var(--superficie);
+      border: 1px solid var(--borda);
+      border-left: 4px solid var(--ardosia);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      cursor: pointer;
+      transition: box-shadow 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .livro-item:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+
+    .livro-info { flex: 1; min-width: 0; }
+    .livro-titulo {
+      font-size: 0.95rem;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .livro-autor { font-size: 0.8rem; color: var(--texto-suave); margin-top: 2px; }
+
+    .livro-meta { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+    .badge-cdd {
+      font-size: 0.75rem;
+      font-weight: 500;
+      padding: 3px 8px;
+      border-radius: 6px;
+      color: #fff;
+      white-space: nowrap;
+    }
+
+    .badge-status {
+      font-size: 0.75rem;
+      padding: 3px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--borda);
+      color: var(--texto-suave);
+      white-space: nowrap;
+    }
+    .badge-status.lido { border-color: #A3B18A; color: #3B6D11; background: #eaf3de; }
+
+    /* --- Modal --- */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.35);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.visivel { display: flex; }
+
+    .modal {
+      background: var(--superficie);
+      border-radius: 14px;
+      padding: 1.8rem;
+      width: 90%;
+      max-width: 480px;
+      max-height: 85vh;
+      overflow-y: auto;
+      position: relative;
+    }
+
+    .modal-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 1rem; }
+    .modal-header h2 { font-size: 1.05rem; font-weight: 500; line-height: 1.4; }
+
+    .btn-fechar {
+      background: none;
+      border: none;
+      font-size: 1.2rem;
+      cursor: pointer;
+      color: var(--texto-suave);
+      flex-shrink: 0;
+      padding: 2px 6px;
+    }
+
+    .modal-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1rem; }
+
+    .modal-campo { margin-bottom: 1rem; }
+    .modal-campo label { display: block; font-size: 0.82rem; color: var(--texto-suave); margin-bottom: 4px; }
+    .modal-campo textarea {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--borda);
+      border-radius: 8px;
+      font-size: 0.88rem;
+      resize: vertical;
+      min-height: 80px;
+      background: var(--bg);
+      color: var(--texto);
+      font-family: inherit;
+    }
+    .modal-campo textarea:focus { outline: 2px solid var(--ardosia); }
+    .modal-campo textarea:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .estrelas { display: flex; gap: 4px; margin-top: 4px; }
+    .estrela {
+      font-size: 1.3rem;
+      cursor: pointer;
+      color: var(--borda);
+      transition: color 0.1s;
+      background: none;
+      border: none;
+      padding: 0;
+    }
+    .estrela.ativa { color: var(--areia); }
+    .estrela:disabled { cursor: default; }
+
+    .modal-acoes { display: flex; gap: 8px; justify-content: flex-end; margin-top: 1.2rem; flex-wrap: wrap; }
+
+    button.secundario {
+      background: none;
+      border: 1px solid var(--borda);
+      border-radius: 8px;
+      padding: 7px 14px;
+      font-size: 0.88rem;
+      cursor: pointer;
+      color: var(--texto);
+      transition: border-color 0.2s;
+    }
+    button.secundario:hover { border-color: var(--ardosia); }
+
+    button.perigo {
+      background: none;
+      border: 1px solid #f09595;
+      border-radius: 8px;
+      padding: 7px 14px;
+      font-size: 0.88rem;
+      cursor: pointer;
+      color: #a32d2d;
+      transition: background 0.2s;
+    }
+    button.perigo:hover { background: #fcebeb; }
+
+    /* --- Modal de senha --- */
+    #modal-senha .modal { max-width: 340px; }
+    #modal-senha h2 { font-size: 1rem; font-weight: 500; margin-bottom: 1rem; }
+    #input-senha {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid var(--borda);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      background: var(--bg);
+      color: var(--texto);
+      margin-bottom: 10px;
+    }
+    #input-senha:focus { outline: 2px solid var(--ardosia); }
+    #msg-senha { font-size: 0.82rem; color: #a32d2d; min-height: 1rem; margin-bottom: 8px; }
+
+    .vazio { text-align: center; padding: 3rem 0; color: var(--texto-suave); font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Biblioteca Dewey</h1>
+    <p>Minha biblioteca pessoal</p>
+  </div>
+  <button id="btn-cadeado" title="Acesso admin">🔒</button>
+</header>
+
+<main>
+
+  <!-- Painel admin -->
+  <div id="painel-admin">
+    <h2>Adicionar livro</h2>
+    <div class="busca-row">
+      <input type="text" id="input-busca" placeholder="Digite o título do livro..." />
+      <button class="primario" onclick="buscarLivro()">Buscar</button>
+    </div>
+    <div id="resultado-busca">
+      <h3 id="res-titulo"></h3>
+      <p id="res-autor"></p>
+      <p id="res-categoria"></p>
+      <div class="salvar-row">
+        <button class="primario" onclick="salvarLivro()">Salvar na biblioteca</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <div class="filtros">
+    <input type="text" id="filtro-titulo" placeholder="Buscar na biblioteca..." oninput="carregarLivros()" />
+    <select id="filtro-categoria" onchange="carregarLivros()">
+      <option value="">Todas as categorias</option>
+      <option value="000">000 — Obras Gerais</option>
+      <option value="100">100 — Filosofia</option>
+      <option value="200">200 — Religião</option>
+      <option value="300">300 — Ciências Sociais</option>
+      <option value="400">400 — Línguas</option>
+      <option value="500">500 — Ciências</option>
+      <option value="600">600 — Tecnologia</option>
+      <option value="700">700 — Artes</option>
+      <option value="800">800 — Literatura</option>
+      <option value="900">900 — História</option>
+    </select>
+    <select id="filtro-lido" onchange="carregarLivros()">
+      <option value="">Todos os status</option>
+      <option value="false">Não lidos</option>
+      <option value="true">Lidos</option>
+    </select>
+  </div>
+
+  <!-- Lista -->
+  <div id="lista-livros"></div>
+
+</main>
+
+<!-- Modal detalhes do livro -->
+<div class="modal-overlay" id="modal-livro">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-titulo"></h2>
+      <button class="btn-fechar" onclick="fecharModal()">✕</button>
+    </div>
+    <div class="modal-meta">
+      <span class="badge-cdd" id="modal-badge-cdd"></span>
+      <span class="badge-status" id="modal-badge-status"></span>
+    </div>
+    <p style="font-size:0.82rem;color:var(--texto-suave);margin-bottom:1rem;" id="modal-autor"></p>
+
+    <div class="modal-campo">
+      <label>Resumo pessoal</label>
+      <textarea id="modal-resumo" placeholder="Adicione suas impressões sobre o livro..."></textarea>
+    </div>
+
+    <div class="modal-campo">
+      <label>Nota</label>
+      <div class="estrelas" id="modal-estrelas"></div>
+    </div>
+
+    <div class="modal-acoes" id="modal-acoes">
+      <button class="secundario" onclick="fecharModal()">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal senha -->
+<div class="modal-overlay" id="modal-senha">
+  <div class="modal">
+    <h2>🔐 Acesso restrito</h2>
+    <input type="password" id="input-senha" placeholder="Senha" onkeydown="if(event.key==='Enter') verificarSenha()" />
+    <div id="msg-senha"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="secundario" onclick="fecharModalSenha()">Cancelar</button>
+      <button class="primario" onclick="verificarSenha()">Entrar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ─── Configuração ───────────────────────────────────────────
+ let SENHA_ADMIN = '';
+ 
+ async function carregarConfig() {
+    const res = await fetch('/config');
+    const dados = await res.json();
+    SENHA_ADMIN = dados.senha;
+}
+
+
+  const cores = {
+    '000': '#7A9E9F', '100': '#9B8EA0', '200': '#C4A882',
+    '300': '#A3B18A', '400': '#9EBAC4', '500': '#D6CE93',
+    '600': '#7A9F7A', '700': '#E5D3B3', '800': '#A5A5A5',
+    '900': '#BC8F8F'
+  };
+
+  // ─── Estado ─────────────────────────────────────────────────
+  let isAdmin = false;
+  let livroAtual = null;
+  let notaAtual = 0;
+  let resultadoBusca = null;
+
+  // ─── Admin / Senha ───────────────────────────────────────────
+document.getElementById('btn-cadeado').addEventListener('click', () => {
+  if (isAdmin) {
+    isAdmin = false;
+    document.getElementById('btn-cadeado').textContent = '🔒';
+    document.getElementById('painel-admin').classList.remove('visivel');
+  } else {
+    document.getElementById('modal-senha').classList.add('visivel');
+    setTimeout(() => document.getElementById('input-senha').focus(), 50);
+  }
+});
+
+function verificarSenha() {
+  const val = document.getElementById('input-senha').value;
+  if (!SENHA_ADMIN) {
+    document.getElementById('msg-senha').textContent = 'Configuração ainda carregando, tente novamente.';
+    return;
+  }
+  if (val === SENHA_ADMIN) {
+    isAdmin = true;
+    document.getElementById('btn-cadeado').textContent = '🔓';
+    // Fecha o modal ANTES de mostrar qualquer outra coisa
+    document.getElementById('modal-senha').classList.remove('visivel');
+    document.getElementById('input-senha').value = '';
+    document.getElementById('msg-senha').textContent = '';
+    // Só depois abre o painel admin
+    document.getElementById('painel-admin').classList.add('visivel');
+  } else {
+    document.getElementById('msg-senha').textContent = 'Senha incorreta.';
+  }
+}
+
+  // ─── Busca externa (Google Books via API) ───────────────────
+  async function buscarLivro() {
+    const titulo = document.getElementById('input-busca').value.trim();
+    if (!titulo) return;
+
+    const res = await fetch(`/buscar?titulo=${encodeURIComponent(titulo)}`);
+    const dados = await res.json();
+
+    resultadoBusca = dados;
+    document.getElementById('res-titulo').textContent = dados.titulo;
+    document.getElementById('res-autor').textContent = dados.autor + (dados.ano !== 'N/A' ? ` · ${dados.ano}` : '');
+    document.getElementById('res-categoria').textContent = `${dados.cdd} — ${dados.categoriaNome}`;
+    document.getElementById('resultado-busca').classList.add('visivel');
+  }
+
+  async function salvarLivro() {
+    if (!resultadoBusca) return;
+    await fetch('/livros', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(resultadoBusca)
+    });
+    document.getElementById('resultado-busca').classList.remove('visivel');
+    document.getElementById('input-busca').value = '';
+    resultadoBusca = null;
+    carregarLivros();
+  }
+
+  // ─── Lista de livros ─────────────────────────────────────────
+  async function carregarLivros() {
+    const titulo     = document.getElementById('filtro-titulo').value;
+    const categoria  = document.getElementById('filtro-categoria').value;
+    const lido       = document.getElementById('filtro-lido').value;
+
+    let url = '/livros?';
+    if (titulo)    url += `titulo=${encodeURIComponent(titulo)}&`;
+    if (lido !== '') url += `lido=${lido}&`;
+
+    let livros;
+    if (categoria) {
+      const res = await fetch(`/livros/categoria/${categoria}`);
+      livros = res.ok ? await res.json() : [];
+      if (titulo || lido !== '') {
+        livros = livros.filter(l => {
+          const matchTitulo = !titulo || l.titulo.toLowerCase().includes(titulo.toLowerCase());
+          const matchLido   = lido === '' || String(l.lido) === lido;
+          return matchTitulo && matchLido;
+        });
+      }
+    } else {
+      const res = await fetch(url);
+      livros = await res.json();
+    }
+
+    const lista = document.getElementById('lista-livros');
+
+    if (!livros.length) {
+      lista.innerHTML = '<div class="vazio">Nenhum livro encontrado.</div>';
+      return;
+    }
+
+    lista.innerHTML = livros.map(l => {
+      const codigoCor = Object.keys(cores).find(k => l.cdd && l.cdd.startsWith(k)) || '000';
+      const cor = cores[codigoCor];
+      const statusClass = l.lido ? 'lido' : '';
+      const statusTexto = l.lido ? 'Lido' : 'Não lido';
+      return `
+        <div class="livro-item" style="border-left-color:${cor}" onclick="abrirModal('${l._id}')">
+          <div class="livro-info">
+            <div class="livro-titulo">${l.titulo}</div>
+            <div class="livro-autor">${l.autor}${l.ano && l.ano !== 'N/A' ? ' · ' + l.ano : ''}</div>
+          </div>
+          <div class="livro-meta">
+            <span class="badge-cdd" style="background:${cor}">${l.cdd}</span>
+            <span class="badge-status ${statusClass}">${statusTexto}</span>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  // ─── Modal de detalhes ───────────────────────────────────────
+  async function abrirModal(id) {
+    const res = await fetch(`/livros`);
+    const todos = await res.json();
+    livroAtual = todos.find(l => l._id === id);
+    if (!livroAtual) return;
+
+    notaAtual = livroAtual.nota || 0;
+    renderizarModal();
+    document.getElementById('modal-livro').classList.add('visivel');
+  }
+
+  function renderizarModal() {
+    if (!livroAtual) return;
+
+    const codigoCor = Object.keys(cores).find(k => livroAtual.cdd && livroAtual.cdd.startsWith(k)) || '000';
+    const cor = cores[codigoCor];
+
+    document.getElementById('modal-titulo').textContent = livroAtual.titulo;
+    document.getElementById('modal-autor').textContent  = livroAtual.autor + (livroAtual.ano && livroAtual.ano !== 'N/A' ? ` · ${livroAtual.ano}` : '');
+
+    const badgeCdd = document.getElementById('modal-badge-cdd');
+    badgeCdd.textContent = `${livroAtual.cdd} — ${livroAtual.categoriaNome || ''}`;
+    badgeCdd.style.background = cor;
+
+    const badgeStatus = document.getElementById('modal-badge-status');
+    badgeStatus.textContent = livroAtual.lido ? 'Lido' : 'Não lido';
+    badgeStatus.className = 'badge-status' + (livroAtual.lido ? ' lido' : '');
+
+    const resumo = document.getElementById('modal-resumo');
+    resumo.value = livroAtual.resumoPessoal || '';
+    resumo.disabled = !isAdmin;
+
+    renderizarEstrelas();
+
+    const acoes = document.getElementById('modal-acoes');
+    if (isAdmin) {
+      acoes.innerHTML = `
+        <button class="perigo" onclick="deletarLivro('${livroAtual._id}')">Remover</button>
+        <button class="secundario" onclick="toggleLido('${livroAtual._id}')">
+          Marcar como ${livroAtual.lido ? 'não lido' : 'lido'}
+        </button>
+        <button class="primario" onclick="salvarEdicao('${livroAtual._id}')">Salvar</button>
+      `;
+    } else {
+      acoes.innerHTML = `<button class="secundario" onclick="fecharModal()">Fechar</button>`;
+    }
+  }
+
+  function renderizarEstrelas() {
+    const container = document.getElementById('modal-estrelas');
+    container.innerHTML = '';
+    for (let i = 1; i <= 5; i++) {
+      const btn = document.createElement('button');
+      btn.className = 'estrela' + (i <= notaAtual ? ' ativa' : '');
+      btn.textContent = '★';
+      btn.disabled = !isAdmin;
+      btn.onclick = () => { notaAtual = i; renderizarEstrelas(); };
+      container.appendChild(btn);
+    }
+  }
+
+  function fecharModal() {
+    document.getElementById('modal-livro').classList.remove('visivel');
+    livroAtual = null;
+  }
+
+  async function salvarEdicao(id) {
+    const resumo = document.getElementById('modal-resumo').value;
+    await fetch(`/livros/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ resumoPessoal: resumo, nota: notaAtual })
+    });
+    fecharModal();
+    carregarLivros();
+  }
+
+  async function toggleLido(id) {
+    await fetch(`/livros/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lido: !livroAtual.lido })
+    });
+    livroAtual.lido = !livroAtual.lido;
+    renderizarModal();
+    carregarLivros();
+  }
+
+  async function deletarLivro(id) {
+    if (!confirm('Remover este livro da biblioteca?')) return;
+    await fetch(`/livros/${id}`, { method: 'DELETE' });
+    fecharModal();
+    carregarLivros();
+  }
+
+  // ─── Fechar modais clicando fora ─────────────────────────────
+  document.getElementById('modal-livro').addEventListener('click', e => {
+    if (e.target === e.currentTarget) fecharModal();
+  });
+  document.getElementById('modal-senha').addEventListener('click', e => {
+    if (e.target === e.currentTarget) fecharModalSenha();
+  });
+
+  // ─── Inicialização ───────────────────────────────────────────
+  carregarConfig().then(() => carregarLivros());
+</script>
+
+</body>
+</html>
