@@ -4,19 +4,22 @@ A presente aplicação, além de ser uma prática em **Node.js** é também um p
 **Etapas do projeto**:   
 
 
-  1. Configuração, integração com API de livros e lógica de mapeamento Dewey.☑️
-		- Integração com o Mundo Externo
-  		- Modelagem do Livro "Inteligente"   
-		- O "Mapeador" de Dewey   
-		- Configurando a Estética do Portfólio (Teoria de Design)   
- 3. Estrutura de dados (banco de dados) e rotas de criação/edição (com nota e resumo).  
-	- Conexão com Banco de Dados NoSQL (MongoDB).  
-	- Uso de Variáveis de Ambiente (.env) para segurança.  
-  	- Lógica de Parâmetros de URL (:id).  
-  	- Manipulação de dados com Mongoose.  
-		
-3. Lógica de busca e filtros avançados.  
-4. Finalização do README, preparação para o portfólio e Deploy.  
+  1. Configuração, integração com API de livros e lógica de mapeamento Dewey ☑️
+		- Integração com o Mundo Externo;
+  		- Modelagem do Livro "Inteligente";   
+		- O "Mapeador" de Dewey;   
+		- Configurando a Estética do Portfólio (Teoria de Design);    
+ 2. Estrutura de dados (banco de dados) e rotas de criação/edição (com nota e resumo) ☑️  
+	- Conexão com Banco de Dados NoSQL (MongoDB);  
+	- Uso de Variáveis de Ambiente (.env) para segurança;  
+  	- Lógica de Parâmetros de URL (:id);  
+  	- Manipulação de dados com Mongoose;  
+  3. Lógica de busca e filtros avançados ☑️
+		- Busca por título com regex (parcial e sem distinção de maiúsculas);
+		- Filtro por categoria Dewey com lógica hierárquica (800 engloba 810, 820...);
+  		- Filtro por status de leitura, combinável com busca por título.
+
+4. WebDev, finalização geral e Deploy.  
      
    
 **Referências**:   
