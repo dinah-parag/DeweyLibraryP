@@ -280,6 +280,22 @@
     #msg-senha { font-size: 0.82rem; color: #a32d2d; min-height: 1rem; margin-bottom: 8px; }
 
     .vazio { text-align: center; padding: 3rem 0; color: var(--texto-suave); font-size: 0.9rem; }
+  
+  .aba-btn {
+  background: none;
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  color: var(--texto-suave);
+  transition: all 0.15s;
+}
+.aba-btn.aba-ativa {
+  background: var(--ardosia);
+  color: #fff;
+  border-color: var(--ardosia);
+}
   </style>
 </head>
 <body>
@@ -294,9 +310,15 @@
 
 <main>
 
-  <!-- Painel admin -->
-  <div id="painel-admin">
-    <h2>Adicionar livro</h2>
+<!-- Painel admin -->
+<div id="painel-admin">
+  <div style="display:flex;gap:8px;margin-bottom:1rem;">
+    <button class="aba-btn aba-ativa" onclick="trocarAba('busca')">Buscar livro</button>
+    <button class="aba-btn" onclick="trocarAba('manual')">Cadastro manual</button>
+  </div>
+
+  <!-- Aba busca -->
+  <div id="aba-busca">
     <div class="busca-row">
       <input type="text" id="input-busca" placeholder="Digite o título do livro..." />
       <button class="primario" onclick="buscarLivro()">Buscar</button>
@@ -310,6 +332,24 @@
       </div>
     </div>
   </div>
+
+  <!-- Aba manual -->
+  <div id="aba-manual" style="display:none;">
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <input type="text" id="manual-titulo" placeholder="Título *" style="padding:8px 12px;border:1px solid var(--borda);border-radius:8px;font-size:0.9rem;background:var(--bg);color:var(--texto);" />
+      <input type="text" id="manual-autor" placeholder="Autor" style="padding:8px 12px;border:1px solid var(--borda);border-radius:8px;font-size:0.9rem;background:var(--bg);color:var(--texto);" />
+      <input type="text" id="manual-ano" placeholder="Ano" style="padding:8px 12px;border:1px solid var(--borda);border-radius:8px;font-size:0.9rem;background:var(--bg);color:var(--texto);" />
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input type="text" id="manual-cdd" placeholder="Código CDD * (ex: 869.1)" style="flex:1;padding:8px 12px;border:1px solid var(--borda);border-radius:8px;font-size:0.9rem;background:var(--bg);color:var(--texto);" />
+        <span id="manual-cdd-preview" style="font-size:0.8rem;color:var(--texto-suave);min-width:120px;"></span>
+      </div>
+      <div id="manual-erro" style="font-size:0.82rem;color:#a32d2d;min-height:1rem;"></div>
+      <div style="display:flex;justify-content:flex-end;">
+        <button class="primario" onclick="salvarManual()">Adicionar à biblioteca</button>
+      </div>
+    </div>
+  </div>
+</div>
 
   <!-- Filtros -->
   <div class="filtros">
@@ -383,20 +423,19 @@
 
 <script>
   // ─── Configuração ───────────────────────────────────────────
- let SENHA_ADMIN = '';
- 
- async function carregarConfig() {
+  let SENHA_ADMIN = '';
+
+  async function carregarConfig() {
     const res = await fetch('/config');
     const dados = await res.json();
     SENHA_ADMIN = dados.senha;
-}
-
+  }
 
   const cores = {
-    '000': '#7A9E9F', '100': '#9B8EA0', '200': '#C4A882',
-    '300': '#A3B18A', '400': '#9EBAC4', '500': '#D6CE93',
-    '600': '#7A9F7A', '700': '#E5D3B3', '800': '#A5A5A5',
-    '900': '#BC8F8F'
+    '000': '#9B9EC4', '100': '#B8A8C8', '200': '#C4ABBE',
+    '300': '#A8BEC4', '400': '#A8C4D4', '500': '#C8D4A8',
+    '600': '#A8C4B8', '700': '#C4C8D8', '800': '#B4A8C4',
+    '900': '#C4B8C8'
   };
 
   // ─── Estado ─────────────────────────────────────────────────
@@ -405,46 +444,80 @@
   let notaAtual = 0;
   let resultadoBusca = null;
 
-  // ─── Admin / Senha ───────────────────────────────────────────
-document.getElementById('btn-cadeado').addEventListener('click', () => {
-  if (isAdmin) {
-    isAdmin = false;
-    document.getElementById('btn-cadeado').textContent = '🔒';
-    document.getElementById('painel-admin').classList.remove('visivel');
-  } else {
-    document.getElementById('modal-senha').classList.add('visivel');
-    setTimeout(() => document.getElementById('input-senha').focus(), 50);
+  // ─── Abas do painel admin ────────────────────────────────────
+  function trocarAba(aba) {
+    document.getElementById('aba-busca').style.display  = aba === 'busca'  ? 'block' : 'none';
+    document.getElementById('aba-manual').style.display = aba === 'manual' ? 'block' : 'none';
+    document.querySelectorAll('.aba-btn').forEach((btn, i) => {
+      btn.classList.toggle('aba-ativa', (aba === 'busca' && i === 0) || (aba === 'manual' && i === 1));
+    });
   }
-});
 
-function verificarSenha() {
-  const val = document.getElementById('input-senha').value;
-  if (!SENHA_ADMIN) {
-    document.getElementById('msg-senha').textContent = 'Configuração ainda carregando, tente novamente.';
-    return;
+  // ─── Preview da categoria ao digitar CDD ────────────────────
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('manual-cdd').addEventListener('input', e => {
+      const val = e.target.value.trim();
+      const preview = document.getElementById('manual-cdd-preview');
+      if (!val) { preview.textContent = ''; return; }
+      const numero = parseFloat(val);
+      if (isNaN(numero)) { preview.textContent = 'Código inválido'; return; }
+      const classe = String(Math.floor(numero / 100) * 100).padStart(3, '0');
+      const nomes = {
+        '000':'Obras Gerais','100':'Filosofia','200':'Religião',
+        '300':'Ciências Sociais','400':'Línguas','500':'Ciências',
+        '600':'Tecnologia','700':'Artes','800':'Literatura','900':'História'
+      };
+      const cor = cores[classe] || cores['000'];
+      const nome = nomes[classe] || 'Obras Gerais';
+      preview.innerHTML = `<span style="display:inline-flex;align-items:center;gap:5px;">
+        <span style="width:10px;height:10px;border-radius:50%;background:${cor};display:inline-block;"></span>
+        ${classe} — ${nome}
+      </span>`;
+    });
+  });
+
+  // ─── Admin / Senha ───────────────────────────────────────────
+  document.getElementById('btn-cadeado').addEventListener('click', () => {
+    if (isAdmin) {
+      isAdmin = false;
+      document.getElementById('btn-cadeado').textContent = '🔒';
+      document.getElementById('painel-admin').classList.remove('visivel');
+    } else {
+      document.getElementById('modal-senha').classList.add('visivel');
+      setTimeout(() => document.getElementById('input-senha').focus(), 50);
+    }
+  });
+
+  function verificarSenha() {
+    const val = document.getElementById('input-senha').value;
+    if (!SENHA_ADMIN) {
+      document.getElementById('msg-senha').textContent = 'Configuração ainda carregando, tente novamente.';
+      return;
+    }
+    if (val === SENHA_ADMIN) {
+      isAdmin = true;
+      document.getElementById('btn-cadeado').textContent = '🔓';
+      document.getElementById('modal-senha').classList.remove('visivel');
+      document.getElementById('input-senha').value = '';
+      document.getElementById('msg-senha').textContent = '';
+      document.getElementById('painel-admin').classList.add('visivel');
+    } else {
+      document.getElementById('msg-senha').textContent = 'Senha incorreta.';
+    }
   }
-  if (val === SENHA_ADMIN) {
-    isAdmin = true;
-    document.getElementById('btn-cadeado').textContent = '🔓';
-    // Fecha o modal ANTES de mostrar qualquer outra coisa
+
+  function fecharModalSenha() {
     document.getElementById('modal-senha').classList.remove('visivel');
     document.getElementById('input-senha').value = '';
     document.getElementById('msg-senha').textContent = '';
-    // Só depois abre o painel admin
-    document.getElementById('painel-admin').classList.add('visivel');
-  } else {
-    document.getElementById('msg-senha').textContent = 'Senha incorreta.';
   }
-}
 
-  // ─── Busca externa (Google Books via API) ───────────────────
+  // ─── Busca externa ───────────────────────────────────────────
   async function buscarLivro() {
     const titulo = document.getElementById('input-busca').value.trim();
     if (!titulo) return;
-
     const res = await fetch(`/buscar?titulo=${encodeURIComponent(titulo)}`);
     const dados = await res.json();
-
     resultadoBusca = dados;
     document.getElementById('res-titulo').textContent = dados.titulo;
     document.getElementById('res-autor').textContent = dados.autor + (dados.ano !== 'N/A' ? ` · ${dados.ano}` : '');
@@ -465,14 +538,51 @@ function verificarSenha() {
     carregarLivros();
   }
 
+  // ─── Cadastro manual ─────────────────────────────────────────
+  async function salvarManual() {
+    const titulo = document.getElementById('manual-titulo').value.trim();
+    const autor  = document.getElementById('manual-autor').value.trim();
+    const ano    = document.getElementById('manual-ano').value.trim();
+    const cdd    = document.getElementById('manual-cdd').value.trim();
+    const erro   = document.getElementById('manual-erro');
+
+    if (!titulo || !cdd) {
+      erro.textContent = 'Título e código CDD são obrigatórios.';
+      return;
+    }
+    if (isNaN(parseFloat(cdd))) {
+      erro.textContent = 'Código CDD inválido. Use apenas números (ex: 869.1).';
+      return;
+    }
+
+    erro.textContent = '';
+    const res = await fetch('/livros/manual', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ titulo, autor, ano, cdd })
+    });
+
+    if (res.ok) {
+      document.getElementById('manual-titulo').value = '';
+      document.getElementById('manual-autor').value  = '';
+      document.getElementById('manual-ano').value    = '';
+      document.getElementById('manual-cdd').value    = '';
+      document.getElementById('manual-cdd-preview').textContent = '';
+      carregarLivros();
+    } else {
+      const dados = await res.json();
+      erro.textContent = dados.mensagem || 'Erro ao salvar.';
+    }
+  }
+
   // ─── Lista de livros ─────────────────────────────────────────
   async function carregarLivros() {
-    const titulo     = document.getElementById('filtro-titulo').value;
-    const categoria  = document.getElementById('filtro-categoria').value;
-    const lido       = document.getElementById('filtro-lido').value;
+    const titulo    = document.getElementById('filtro-titulo').value;
+    const categoria = document.getElementById('filtro-categoria').value;
+    const lido      = document.getElementById('filtro-lido').value;
 
     let url = '/livros?';
-    if (titulo)    url += `titulo=${encodeURIComponent(titulo)}&`;
+    if (titulo)      url += `titulo=${encodeURIComponent(titulo)}&`;
     if (lido !== '') url += `lido=${lido}&`;
 
     let livros;
@@ -492,15 +602,15 @@ function verificarSenha() {
     }
 
     const lista = document.getElementById('lista-livros');
-
     if (!livros.length) {
       lista.innerHTML = '<div class="vazio">Nenhum livro encontrado.</div>';
       return;
     }
 
     lista.innerHTML = livros.map(l => {
-      const codigoCor = Object.keys(cores).find(k => l.cdd && l.cdd.startsWith(k)) || '000';
-      const cor = cores[codigoCor];
+      const numero = parseFloat(l.cdd);
+      const classe = isNaN(numero) ? '000' : String(Math.floor(numero / 100) * 100).padStart(3, '0');
+      const cor = cores[classe] || cores['000'];
       const statusClass = l.lido ? 'lido' : '';
       const statusTexto = l.lido ? 'Lido' : 'Não lido';
       return `
@@ -519,11 +629,10 @@ function verificarSenha() {
 
   // ─── Modal de detalhes ───────────────────────────────────────
   async function abrirModal(id) {
-    const res = await fetch(`/livros`);
+    const res = await fetch('/livros');
     const todos = await res.json();
     livroAtual = todos.find(l => l._id === id);
     if (!livroAtual) return;
-
     notaAtual = livroAtual.nota || 0;
     renderizarModal();
     document.getElementById('modal-livro').classList.add('visivel');
@@ -531,9 +640,9 @@ function verificarSenha() {
 
   function renderizarModal() {
     if (!livroAtual) return;
-
-    const codigoCor = Object.keys(cores).find(k => livroAtual.cdd && livroAtual.cdd.startsWith(k)) || '000';
-    const cor = cores[codigoCor];
+    const numero = parseFloat(livroAtual.cdd);
+    const classe = isNaN(numero) ? '000' : String(Math.floor(numero / 100) * 100).padStart(3, '0');
+    const cor = cores[classe] || cores['000'];
 
     document.getElementById('modal-titulo').textContent = livroAtual.titulo;
     document.getElementById('modal-autor').textContent  = livroAtual.autor + (livroAtual.ano && livroAtual.ano !== 'N/A' ? ` · ${livroAtual.ano}` : '');
@@ -547,7 +656,7 @@ function verificarSenha() {
     badgeStatus.className = 'badge-status' + (livroAtual.lido ? ' lido' : '');
 
     const resumo = document.getElementById('modal-resumo');
-    resumo.value = livroAtual.resumoPessoal || '';
+    resumo.value    = livroAtual.resumoPessoal || '';
     resumo.disabled = !isAdmin;
 
     renderizarEstrelas();
@@ -559,8 +668,7 @@ function verificarSenha() {
         <button class="secundario" onclick="toggleLido('${livroAtual._id}')">
           Marcar como ${livroAtual.lido ? 'não lido' : 'lido'}
         </button>
-        <button class="primario" onclick="salvarEdicao('${livroAtual._id}')">Salvar</button>
-      `;
+        <button class="primario" onclick="salvarEdicao('${livroAtual._id}')">Salvar</button>`;
     } else {
       acoes.innerHTML = `<button class="secundario" onclick="fecharModal()">Fechar</button>`;
     }

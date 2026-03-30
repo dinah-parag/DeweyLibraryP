@@ -1,15 +1,12 @@
-import axios from 'axios';
-import { identificarCategoria } from '../utils/mapeadorDewey.js';
 import Livro from '../models/LivroSchema.js';
+import axios from 'axios';
+import { identificarCategoria, buscarCategoriaPorCodigo } from '../utils/mapeadorDewey.js';
 
 export const buscarLivroExterno = async (req, res) => {
-    const { titulo } = req.query; // Pega o título enviado na URL
-
+    const { titulo } = req.query;
     try {
         const response = await axios.get(`https://www.googleapis.com/books/v1/volumes?q=${titulo}`);
-        const dados = response.data.items[0].volumeInfo; // Pega o primeiro resultado
-
-        // Descobrindo o CCD e a Cor
+        const dados = response.data.items[0].volumeInfo;
         const infoDewey = identificarCategoria(dados.categories ? dados.categories[0] : "");
 
         const novoLivro = {
@@ -18,7 +15,7 @@ export const buscarLivroExterno = async (req, res) => {
             ano: dados.publishedDate ? dados.publishedDate.split('-')[0] : "N/A",
             cdd: infoDewey.codigo,
             categoriaNome: infoDewey.nome,
-            corSugerida: infoDewey.cor, 
+            corSugerida: infoDewey.cor,
             resumo: dados.description || "Sem resumo disponível.",
             status: "Não lido",
             nota: 0
@@ -32,16 +29,39 @@ export const buscarLivroExterno = async (req, res) => {
 
 export const adicionarLivro = async (req, res) => {
     try {
-        // O req.body contém as informações que vamos enviar
         const novoLivro = new Livro(req.body);
-        
-        // O .save() é o comando mágico do Mongoose que grava no Atlas
         const livroSalvo = await novoLivro.save();
-        
-        res.status(201).json({
-            mensagem: "Livro adicionado com sucesso à sua biblioteca!",
-            livro: livroSalvo
+        res.status(201).json({ mensagem: "Livro adicionado com sucesso!", livro: livroSalvo });
+    } catch (error) {
+        res.status(400).json({ mensagem: "Erro ao salvar o livro", erro: error.message });
+    }
+};
+
+// Função para cadastro manual
+export const adicionarLivroManual = async (req, res) => {
+    try {
+        const { titulo, autor, ano, cdd } = req.body;
+
+        if (!titulo || !cdd) {
+            return res.status(400).json({ mensagem: "Título e código CDD são obrigatórios." });
+        }
+
+        const infoCategoria = buscarCategoriaPorCodigo(cdd);
+
+        const novoLivro = new Livro({
+            titulo,
+            autor: autor || "Autor não informado",
+            ano: ano || "N/A",
+            cdd,
+            categoriaNome: infoCategoria.nome,
+            corSugerida: infoCategoria.cor,
+            lido: false,
+            resumoPessoal: "",
+            nota: 0
         });
+
+        const livroSalvo = await novoLivro.save();
+        res.status(201).json({ mensagem: "Livro adicionado manualmente!", livro: livroSalvo });
     } catch (error) {
         res.status(400).json({ mensagem: "Erro ao salvar o livro", erro: error.message });
     }
@@ -51,37 +71,34 @@ export const listarLivros = async (req, res) => {
     try {
         const { titulo, lido } = req.query;
         const filtro = {};
-
-        if (titulo) {
-            filtro.titulo = { $regex: titulo, $options: 'i' };
-        }
-
-        if (lido !== undefined) {
-            filtro.lido = lido === 'true';
-        }
-
+        if (titulo) filtro.titulo = { $regex: titulo, $options: 'i' };
+        if (lido !== undefined) filtro.lido = lido === 'true';
         const livros = await Livro.find(filtro);
-
         res.status(200).json(livros);
     } catch (error) {
         res.status(500).json({ mensagem: "Erro ao buscar livros", erro: error.message });
     }
 };
 
+export const listarPorCategoria = async (req, res) => {
+    try {
+        const { codigo } = req.params;
+        const livros = await Livro.find({ cdd: { $regex: `^${codigo}`, $options: 'i' } });
+        if (livros.length === 0) {
+            return res.status(404).json({ mensagem: `Nenhum livro encontrado na categoria ${codigo}.` });
+        }
+        res.status(200).json(livros);
+    } catch (error) {
+        res.status(500).json({ mensagem: "Erro ao filtrar por categoria", erro: error.message });
+    }
+};
+
 export const atualizarLivro = async (req, res) => {
-    const { id } = req.params; 
-    
+    const { id } = req.params;
     try {
         const livroAtualizado = await Livro.findByIdAndUpdate(id, req.body, { new: true });
-        
-        if (!livroAtualizado) {
-            return res.status(404).json({ mensagem: "Livro não encontrado." });
-        }
-
-        res.status(200).json({
-            mensagem: "Livro atualizado com sucesso!",
-            livro: livroAtualizado
-        });
+        if (!livroAtualizado) return res.status(404).json({ mensagem: "Livro não encontrado." });
+        res.status(200).json({ mensagem: "Livro atualizado!", livro: livroAtualizado });
     } catch (error) {
         res.status(400).json({ mensagem: "Erro ao atualizar livro", erro: error.message });
     }
@@ -89,38 +106,11 @@ export const atualizarLivro = async (req, res) => {
 
 export const removerLivro = async (req, res) => {
     const { id } = req.params;
-
     try {
         const livroRemovido = await Livro.findByIdAndDelete(id);
-
-        if (!livroRemovido) {
-            return res.status(404).json({ mensagem: "Livro não encontrado para remoção." });
-        }
-
-        res.status(200).json({
-            mensagem: `O livro "${livroRemovido.titulo}" foi removido com sucesso!`
-        });
+        if (!livroRemovido) return res.status(404).json({ mensagem: "Livro não encontrado." });
+        res.status(200).json({ mensagem: `"${livroRemovido.titulo}" removido com sucesso!` });
     } catch (error) {
-        res.status(500).json({ mensagem: "Erro ao remover o livro", erro: error.message });
-    }
-};
-
-export const listarPorCategoria = async (req, res) => {
-    try {
-        const { codigo } = req.params;
-
-        const livros = await Livro.find({
-            cdd: { $regex: `^${codigo}`, $options: 'i' }
-        });
-
-        if (livros.length === 0) {
-            return res.status(404).json({ 
-                mensagem: `Nenhum livro encontrado na categoria ${codigo}.` 
-            });
-        }
-
-        res.status(200).json(livros);
-    } catch (error) {
-        res.status(500).json({ mensagem: "Erro ao filtrar por categoria", erro: error.message });
+        res.status(500).json({ mensagem: "Erro ao remover livro", erro: error.message });
     }
 };
