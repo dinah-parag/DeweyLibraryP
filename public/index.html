@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Biblioteca Dewey</title>
+  <title>Biblioteca Pessoal Dewey</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -302,7 +302,7 @@
 
 <header>
   <div>
-    <h1>Biblioteca Dewey</h1>
+    <h1>Biblioteca de Base Decimal Dewey</h1>
     <p>Minha biblioteca pessoal</p>
   </div>
   <button id="btn-cadeado" title="Acesso admin">🔒</button>
@@ -312,9 +312,12 @@
 
 <!-- Painel admin -->
 <div id="painel-admin">
-  <div style="display:flex;gap:8px;margin-bottom:1rem;">
-    <button class="aba-btn aba-ativa" onclick="trocarAba('busca')">Buscar livro</button>
-    <button class="aba-btn" onclick="trocarAba('manual')">Cadastro manual</button>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+    <div style="display:flex;gap:8px;">
+      <button class="aba-btn aba-ativa" onclick="trocarAba('busca')">Buscar livro</button>
+      <button class="aba-btn" onclick="trocarAba('manual')">Cadastro manual</button>
+    </div>
+    <span id="contador-livros" style="font-size:0.82rem;color:var(--texto-suave);"></span>
   </div>
 
   <!-- Aba busca -->
@@ -323,10 +326,20 @@
       <input type="text" id="input-busca" placeholder="Digite o título do livro..." />
       <button class="primario" onclick="buscarLivro()">Buscar</button>
     </div>
+
+    <!-- Preview editável do resultado -->
     <div id="resultado-busca">
-      <h3 id="res-titulo"></h3>
-      <p id="res-autor"></p>
-      <p id="res-categoria"></p>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <input type="text" id="res-titulo-input" placeholder="Título"
+          style="padding:8px 12px;border:1px solid var(--borda);border-radius:8px;font-size:0.9rem;background:var(--bg);color:var(--texto);" />
+        <input type="text" id="res-autor-input" placeholder="Autor · Ano"
+          style="padding:8px 12px;border:1px solid var(--borda);border-radius:8px;font-size:0.9rem;background:var(--bg);color:var(--texto);" />
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="text" id="res-cdd-input" placeholder="Código CDD"
+            style="flex:1;padding:8px 12px;border:1px solid var(--borda);border-radius:8px;font-size:0.9rem;background:var(--bg);color:var(--texto);" />
+          <span id="res-cdd-preview" style="font-size:0.8rem;color:var(--texto-suave);min-width:120px;"></span>
+        </div>
+      </div>
       <div class="salvar-row">
         <button class="primario" onclick="salvarLivro()">Salvar na biblioteca</button>
       </div>
@@ -336,11 +349,15 @@
   <!-- Aba manual -->
   <div id="aba-manual" style="display:none;">
     <div style="display:flex;flex-direction:column;gap:10px;">
-      <input type="text" id="manual-titulo" placeholder="Título *" style="padding:8px 12px;border:1px solid var(--borda);border-radius:8px;font-size:0.9rem;background:var(--bg);color:var(--texto);" />
-      <input type="text" id="manual-autor" placeholder="Autor" style="padding:8px 12px;border:1px solid var(--borda);border-radius:8px;font-size:0.9rem;background:var(--bg);color:var(--texto);" />
-      <input type="text" id="manual-ano" placeholder="Ano" style="padding:8px 12px;border:1px solid var(--borda);border-radius:8px;font-size:0.9rem;background:var(--bg);color:var(--texto);" />
+      <input type="text" id="manual-titulo" placeholder="Título *"
+        style="padding:8px 12px;border:1px solid var(--borda);border-radius:8px;font-size:0.9rem;background:var(--bg);color:var(--texto);" />
+      <input type="text" id="manual-autor" placeholder="Autor"
+        style="padding:8px 12px;border:1px solid var(--borda);border-radius:8px;font-size:0.9rem;background:var(--bg);color:var(--texto);" />
+      <input type="text" id="manual-ano" placeholder="Ano"
+        style="padding:8px 12px;border:1px solid var(--borda);border-radius:8px;font-size:0.9rem;background:var(--bg);color:var(--texto);" />
       <div style="display:flex;gap:8px;align-items:center;">
-        <input type="text" id="manual-cdd" placeholder="Código CDD * (ex: 869.1)" style="flex:1;padding:8px 12px;border:1px solid var(--borda);border-radius:8px;font-size:0.9rem;background:var(--bg);color:var(--texto);" />
+        <input type="text" id="manual-cdd" placeholder="Código CDD * (ex: 869.1)"
+          style="flex:1;padding:8px 12px;border:1px solid var(--borda);border-radius:8px;font-size:0.9rem;background:var(--bg);color:var(--texto);" />
         <span id="manual-cdd-preview" style="font-size:0.8rem;color:var(--texto-suave);min-width:120px;"></span>
       </div>
       <div id="manual-erro" style="font-size:0.82rem;color:#a32d2d;min-height:1rem;"></div>
@@ -392,6 +409,21 @@
     </div>
     <p style="font-size:0.82rem;color:var(--texto-suave);margin-bottom:1rem;" id="modal-autor"></p>
 
+    <!-- Campos de edição cadastral (ocultos por padrão) -->
+    <div id="modal-edicao-cadastral" style="display:none;flex-direction:column;gap:8px;margin-bottom:1rem;">
+      <input type="text" id="edit-titulo" placeholder="Título *"
+        style="padding:8px 12px;border:1px solid var(--borda);border-radius:8px;font-size:0.9rem;background:var(--bg);color:var(--texto);" />
+      <input type="text" id="edit-autor" placeholder="Autor"
+        style="padding:8px 12px;border:1px solid var(--borda);border-radius:8px;font-size:0.9rem;background:var(--bg);color:var(--texto);" />
+      <input type="text" id="edit-ano" placeholder="Ano"
+        style="padding:8px 12px;border:1px solid var(--borda);border-radius:8px;font-size:0.9rem;background:var(--bg);color:var(--texto);" />
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input type="text" id="edit-cdd" placeholder="Código CDD (ex: 869.1)"
+          style="flex:1;padding:8px 12px;border:1px solid var(--borda);border-radius:8px;font-size:0.9rem;background:var(--bg);color:var(--texto);" />
+        <span id="edit-cdd-preview" style="font-size:0.8rem;color:var(--texto-suave);min-width:120px;"></span>
+      </div>
+    </div>
+
     <div class="modal-campo">
       <label>Resumo pessoal</label>
       <textarea id="modal-resumo" placeholder="Adicione suas impressões sobre o livro..."></textarea>
@@ -438,11 +470,45 @@
     '900': '#C4B8C8'
   };
 
+  const nomesCategorias = {
+    '000':'Obras Gerais','100':'Filosofia','200':'Religião',
+    '300':'Ciências Sociais','400':'Línguas','500':'Ciências',
+    '600':'Tecnologia','700':'Artes','800':'Literatura','900':'História e Geografia'
+  };
+
   // ─── Estado ─────────────────────────────────────────────────
   let isAdmin = false;
   let livroAtual = null;
   let notaAtual = 0;
   let resultadoBusca = null;
+  let modoEdicaoCadastral = false;
+
+  // ─── Helpers ─────────────────────────────────────────────────
+  function classePrincipal(cdd) {
+    const numero = parseFloat(cdd);
+    if (isNaN(numero)) return '000';
+    return String(Math.floor(numero / 100) * 100).padStart(3, '0');
+  }
+
+  function previewCDD(inputId, previewId) {
+    const val = document.getElementById(inputId).value.trim();
+    const el  = document.getElementById(previewId);
+    if (!val) { el.innerHTML = ''; return; }
+    const numero = parseFloat(val);
+    if (isNaN(numero)) { el.textContent = 'Código inválido'; return; }
+    const classe = classePrincipal(val);
+    const cor    = cores[classe] || cores['000'];
+    const nome   = nomesCategorias[classe] || 'Obras Gerais';
+    el.innerHTML = `<span style="display:inline-flex;align-items:center;gap:5px;">
+      <span style="width:10px;height:10px;border-radius:50%;background:${cor};display:inline-block;"></span>
+      ${classe} — ${nome}
+    </span>`;
+  }
+
+  function atualizarContador(total) {
+    const el = document.getElementById('contador-livros');
+    if (el) el.textContent = `${total} livro${total !== 1 ? 's' : ''} na biblioteca`;
+  }
 
   // ─── Abas do painel admin ────────────────────────────────────
   function trocarAba(aba) {
@@ -452,29 +518,6 @@
       btn.classList.toggle('aba-ativa', (aba === 'busca' && i === 0) || (aba === 'manual' && i === 1));
     });
   }
-
-  // ─── Preview da categoria ao digitar CDD ────────────────────
-  document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('manual-cdd').addEventListener('input', e => {
-      const val = e.target.value.trim();
-      const preview = document.getElementById('manual-cdd-preview');
-      if (!val) { preview.textContent = ''; return; }
-      const numero = parseFloat(val);
-      if (isNaN(numero)) { preview.textContent = 'Código inválido'; return; }
-      const classe = String(Math.floor(numero / 100) * 100).padStart(3, '0');
-      const nomes = {
-        '000':'Obras Gerais','100':'Filosofia','200':'Religião',
-        '300':'Ciências Sociais','400':'Línguas','500':'Ciências',
-        '600':'Tecnologia','700':'Artes','800':'Literatura','900':'História'
-      };
-      const cor = cores[classe] || cores['000'];
-      const nome = nomes[classe] || 'Obras Gerais';
-      preview.innerHTML = `<span style="display:inline-flex;align-items:center;gap:5px;">
-        <span style="width:10px;height:10px;border-radius:50%;background:${cor};display:inline-block;"></span>
-        ${classe} — ${nome}
-      </span>`;
-    });
-  });
 
   // ─── Admin / Senha ───────────────────────────────────────────
   document.getElementById('btn-cadeado').addEventListener('click', () => {
@@ -516,22 +559,43 @@
   async function buscarLivro() {
     const titulo = document.getElementById('input-busca').value.trim();
     if (!titulo) return;
-    const res = await fetch(`/buscar?titulo=${encodeURIComponent(titulo)}`);
+    const res   = await fetch(`/buscar?titulo=${encodeURIComponent(titulo)}`);
     const dados = await res.json();
     resultadoBusca = dados;
-    document.getElementById('res-titulo').textContent = dados.titulo;
-    document.getElementById('res-autor').textContent = dados.autor + (dados.ano !== 'N/A' ? ` · ${dados.ano}` : '');
-    document.getElementById('res-categoria').textContent = `${dados.cdd} — ${dados.categoriaNome}`;
+
+    document.getElementById('res-titulo-input').value = dados.titulo || '';
+    document.getElementById('res-autor-input').value  = dados.autor  || '';
+    document.getElementById('res-cdd-input').value    = dados.cdd    || '';
+    previewCDD('res-cdd-input', 'res-cdd-preview');
     document.getElementById('resultado-busca').classList.add('visivel');
   }
 
   async function salvarLivro() {
     if (!resultadoBusca) return;
+
+    const titulo = document.getElementById('res-titulo-input').value.trim();
+    const autor  = document.getElementById('res-autor-input').value.trim();
+    const cdd    = document.getElementById('res-cdd-input').value.trim();
+
+    const classe   = classePrincipal(cdd);
+    const cor      = cores[classe] || cores['000'];
+    const catNome  = nomesCategorias[classe] || 'Obras Gerais';
+
+    const payload = {
+      ...resultadoBusca,
+      titulo,
+      autor,
+      cdd,
+      corSugerida:   cor,
+      categoriaNome: catNome
+    };
+
     await fetch('/livros', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(resultadoBusca)
+      body: JSON.stringify(payload)
     });
+
     document.getElementById('resultado-busca').classList.remove('visivel');
     document.getElementById('input-busca').value = '';
     resultadoBusca = null;
@@ -546,14 +610,8 @@
     const cdd    = document.getElementById('manual-cdd').value.trim();
     const erro   = document.getElementById('manual-erro');
 
-    if (!titulo || !cdd) {
-      erro.textContent = 'Título e código CDD são obrigatórios.';
-      return;
-    }
-    if (isNaN(parseFloat(cdd))) {
-      erro.textContent = 'Código CDD inválido. Use apenas números (ex: 869.1).';
-      return;
-    }
+    if (!titulo || !cdd) { erro.textContent = 'Título e código CDD são obrigatórios.'; return; }
+    if (isNaN(parseFloat(cdd))) { erro.textContent = 'Código CDD inválido. Use apenas números (ex: 869.1).'; return; }
 
     erro.textContent = '';
     const res = await fetch('/livros/manual', {
@@ -567,7 +625,7 @@
       document.getElementById('manual-autor').value  = '';
       document.getElementById('manual-ano').value    = '';
       document.getElementById('manual-cdd').value    = '';
-      document.getElementById('manual-cdd-preview').textContent = '';
+      document.getElementById('manual-cdd-preview').innerHTML = '';
       carregarLivros();
     } else {
       const dados = await res.json();
@@ -601,6 +659,8 @@
       livros = await res.json();
     }
 
+    atualizarContador(livros.length);
+
     const lista = document.getElementById('lista-livros');
     if (!livros.length) {
       lista.innerHTML = '<div class="vazio">Nenhum livro encontrado.</div>';
@@ -608,9 +668,8 @@
     }
 
     lista.innerHTML = livros.map(l => {
-      const numero = parseFloat(l.cdd);
-      const classe = isNaN(numero) ? '000' : String(Math.floor(numero / 100) * 100).padStart(3, '0');
-      const cor = cores[classe] || cores['000'];
+      const classe     = classePrincipal(l.cdd);
+      const cor        = cores[classe] || cores['000'];
       const statusClass = l.lido ? 'lido' : '';
       const statusTexto = l.lido ? 'Lido' : 'Não lido';
       return `
@@ -629,48 +688,80 @@
 
   // ─── Modal de detalhes ───────────────────────────────────────
   async function abrirModal(id) {
-    const res = await fetch('/livros');
+    const res  = await fetch('/livros');
     const todos = await res.json();
     livroAtual = todos.find(l => l._id === id);
     if (!livroAtual) return;
     notaAtual = livroAtual.nota || 0;
+    modoEdicaoCadastral = false;
     renderizarModal();
     document.getElementById('modal-livro').classList.add('visivel');
   }
 
+  function toggleEdicaoCadastral() {
+    modoEdicaoCadastral = !modoEdicaoCadastral;
+    const bloco = document.getElementById('modal-edicao-cadastral');
+    bloco.style.display = modoEdicaoCadastral ? 'flex' : 'none';
+
+    if (modoEdicaoCadastral) {
+      document.getElementById('edit-titulo').value = livroAtual.titulo || '';
+      document.getElementById('edit-autor').value  = livroAtual.autor  || '';
+      document.getElementById('edit-ano').value    = livroAtual.ano    || '';
+      document.getElementById('edit-cdd').value    = livroAtual.cdd    || '';
+      previewCDD('edit-cdd', 'edit-cdd-preview');
+
+      document.getElementById('edit-cdd').addEventListener('input', () => {
+        previewCDD('edit-cdd', 'edit-cdd-preview');
+      });
+    }
+    renderizarBotoesModal();
+  }
+
   function renderizarModal() {
     if (!livroAtual) return;
-    const numero = parseFloat(livroAtual.cdd);
-    const classe = isNaN(numero) ? '000' : String(Math.floor(numero / 100) * 100).padStart(3, '0');
-    const cor = cores[classe] || cores['000'];
+    const classe = classePrincipal(livroAtual.cdd);
+    const cor    = cores[classe] || cores['000'];
 
     document.getElementById('modal-titulo').textContent = livroAtual.titulo;
-    document.getElementById('modal-autor').textContent  = livroAtual.autor + (livroAtual.ano && livroAtual.ano !== 'N/A' ? ` · ${livroAtual.ano}` : '');
+    document.getElementById('modal-autor').textContent  = livroAtual.autor +
+      (livroAtual.ano && livroAtual.ano !== 'N/A' ? ` · ${livroAtual.ano}` : '');
 
     const badgeCdd = document.getElementById('modal-badge-cdd');
-    badgeCdd.textContent = `${livroAtual.cdd} — ${livroAtual.categoriaNome || ''}`;
+    badgeCdd.textContent    = `${livroAtual.cdd} — ${livroAtual.categoriaNome || ''}`;
     badgeCdd.style.background = cor;
 
     const badgeStatus = document.getElementById('modal-badge-status');
     badgeStatus.textContent = livroAtual.lido ? 'Lido' : 'Não lido';
-    badgeStatus.className = 'badge-status' + (livroAtual.lido ? ' lido' : '');
+    badgeStatus.className   = 'badge-status' + (livroAtual.lido ? ' lido' : '');
 
-    const resumo = document.getElementById('modal-resumo');
+    const resumo    = document.getElementById('modal-resumo');
     resumo.value    = livroAtual.resumoPessoal || '';
     resumo.disabled = !isAdmin;
 
+    document.getElementById('modal-edicao-cadastral').style.display = 'none';
     renderizarEstrelas();
+    renderizarBotoesModal();
+  }
 
+  function renderizarBotoesModal() {
     const acoes = document.getElementById('modal-acoes');
-    if (isAdmin) {
+    if (!isAdmin) {
+      acoes.innerHTML = `<button class="secundario" onclick="fecharModal()">Fechar</button>`;
+      return;
+    }
+
+    if (modoEdicaoCadastral) {
+      acoes.innerHTML = `
+        <button class="secundario" onclick="toggleEdicaoCadastral()">Cancelar</button>
+        <button class="primario" onclick="salvarEdicaoCadastral('${livroAtual._id}')">Salvar dados</button>`;
+    } else {
       acoes.innerHTML = `
         <button class="perigo" onclick="deletarLivro('${livroAtual._id}')">Remover</button>
         <button class="secundario" onclick="toggleLido('${livroAtual._id}')">
           Marcar como ${livroAtual.lido ? 'não lido' : 'lido'}
         </button>
+        <button class="secundario" onclick="toggleEdicaoCadastral()">Editar dados</button>
         <button class="primario" onclick="salvarEdicao('${livroAtual._id}')">Salvar</button>`;
-    } else {
-      acoes.innerHTML = `<button class="secundario" onclick="fecharModal()">Fechar</button>`;
     }
   }
 
@@ -679,16 +770,17 @@
     container.innerHTML = '';
     for (let i = 1; i <= 5; i++) {
       const btn = document.createElement('button');
-      btn.className = 'estrela' + (i <= notaAtual ? ' ativa' : '');
+      btn.className   = 'estrela' + (i <= notaAtual ? ' ativa' : '');
       btn.textContent = '★';
-      btn.disabled = !isAdmin;
-      btn.onclick = () => { notaAtual = i; renderizarEstrelas(); };
+      btn.disabled    = !isAdmin;
+      btn.onclick     = () => { notaAtual = i; renderizarEstrelas(); };
       container.appendChild(btn);
     }
   }
 
   function fecharModal() {
     document.getElementById('modal-livro').classList.remove('visivel');
+    modoEdicaoCadastral = false;
     livroAtual = null;
   }
 
@@ -699,6 +791,28 @@
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ resumoPessoal: resumo, nota: notaAtual })
     });
+    fecharModal();
+    carregarLivros();
+  }
+
+  async function salvarEdicaoCadastral(id) {
+    const titulo = document.getElementById('edit-titulo').value.trim();
+    const autor  = document.getElementById('edit-autor').value.trim();
+    const ano    = document.getElementById('edit-ano').value.trim();
+    const cdd    = document.getElementById('edit-cdd').value.trim();
+
+    if (!titulo || !cdd) return;
+
+    const classe  = classePrincipal(cdd);
+    const cor     = cores[classe] || cores['000'];
+    const catNome = nomesCategorias[classe] || 'Obras Gerais';
+
+    await fetch(`/livros/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ titulo, autor, ano, cdd, corSugerida: cor, categoriaNome: catNome })
+    });
+
     fecharModal();
     carregarLivros();
   }
@@ -727,6 +841,12 @@
   });
   document.getElementById('modal-senha').addEventListener('click', e => {
     if (e.target === e.currentTarget) fecharModalSenha();
+  });
+
+  // ─── Previews de CDD ─────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('manual-cdd').addEventListener('input', () => previewCDD('manual-cdd', 'manual-cdd-preview'));
+    document.getElementById('res-cdd-input').addEventListener('input', () => previewCDD('res-cdd-input', 'res-cdd-preview'));
   });
 
   // ─── Inicialização ───────────────────────────────────────────
